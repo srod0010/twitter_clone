@@ -10,7 +10,7 @@ router.get("/test", (req, res) => res.json({
     msg: "This is the users route"
 }));
 
-// check post
+// check post-register
 router.post('/register', (req, res) => {
     // Check to make sure nobody has already registered with a duplicate email
     User.findOne({
@@ -43,48 +43,57 @@ router.post('/register', (req, res) => {
         })
 })
 
-router.post("/login", (req, res) => {
-    const {
-        errors,
-        isValid
-    } = validateLoginInput(req.body);
-
-    if (!isValid) {
-        return res.status(400).json(errors);
-    }
-
-    const name = req.body.name;
+//login user
+router.post('/login', (req, res) => {
+    const email = req.body.email;
     const password = req.body.password;
 
     User.findOne({
-        name
-    }).then(user => {
-        if (!user) {
-            errors.name = "This user does not exist";
-            return res.status(400).json(errors);
-        }
-
-        bcrypt.compare(password, user.password).then(isMatch => {
-            if (isMatch) {
-                const payload = {
-                    id: user.id,
-                    name: user.name
-                };
-
-                jwt.sign(payload, keys.secretOrKeys, {
-                    expiresIn: 3600
-                }, (err, token) => {
-                    res.json({
-                        success: true,
-                        token: "Bearer " + token
-                    });
+            email
+        })
+        .then(user => {
+            if (!user) {
+                return res.status(404).json({
+                    email: 'This user does not exist'
                 });
-            } else {
-                errors.password = "Incorrect password";
-                return res.status(400).json(errors);
             }
-        });
+
+            bcrypt.compare(password, user.password)
+                .then(isMatch => {
+                    if (isMatch) {
+                      const payload = {
+                          id: user.id,
+                          handle: user.handle,
+                          email: user.email
+                      }  
+
+                      jwt.sign(
+                          payload,
+                          keys.secretOrKey,
+                          { expiresIn: 3600 },
+                          (err, token) => {
+                            res.json({
+                                success: true,
+                                token: "Bearer " + token
+                            });
+                          }
+                      )
+                    } else {
+                        return res.status(400).json({
+                            password: 'Incorrect password'
+                        });
+                    }
+                })
+        })
+})
+
+//private auth route
+router.get('/current', passport.authenticate('jwt', {
+    session: false
+}), (req, res) => {
+    res.json({
+        msg: 'Success'
     });
-});
+})
 
 module.exports = router;
