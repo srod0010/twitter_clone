@@ -2,6 +2,15 @@ const express = require("express");
 const app = express();
 const db = require('./config/keys').mongoURI;
 const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+
+const users = require("./routes/api/users");
+const tweets = require("./routes/api/tweets");
+
+app.use(bodyParser.urlencoded({
+    extended: false
+}));
+app.use(bodyParser.json());
 
 mongoose
     .connect(db, {
@@ -10,7 +19,11 @@ mongoose
     .then(() => console.log("Connected to MongoDB successfully"))
     .catch(err => console.log(err));
 
+/// routes ///
 app.get("/", (req, res) => res.send("Hello World"));
+app.use("/api/users", users);
+app.use("/api/tweets", tweets);
+//// end routes ///
 
 const port = process.env.PORT || 5000;
 
